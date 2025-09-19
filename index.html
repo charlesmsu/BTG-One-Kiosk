@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Kiosk Self Check-In</title>
+  <style>
+    * { box-sizing:border-box }
+    html,body { margin:0; padding:0; height:100%; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif; background:#f5f6f7; }
+    .shell { display:flex; flex-direction:column; height:100%; }
+    .header { height:52px; background:#fff; border-bottom:1px solid #e5e5e5; display:flex; align-items:center; justify-content:space-between; padding:0 14px; }
+    .header .title { font-weight:700; }
+    .main { display:flex; gap:16px; padding:16px; height:calc(100% - 52px); }
+    .col { background:#fff; border:1px solid #e5e5e5; border-radius:10px; padding:14px; display:flex; flex-direction:column; }
+    .left { flex:1 1 46%; min-width:340px; }
+    .right { flex:1 1 54%; min-width:360px; }
+    /* Chat UI */
+    .messages { flex:1; overflow:auto; border:1px solid #e5e5e5; border-radius:10px; padding:10px; background:#fafafa; }
+    .msg { max-width:78%; margin:8px 0; padding:10px 12px; border-radius:14px; line-height:1.25; word-wrap:anywhere; }
+    .msg.bot { background:#e9ecf1; color:#111; border-top-left-radius:4px; }
+    .msg.user { background:#0a84ff; color:#fff; border-top-right-radius:4px; margin-left:auto; }
+    .input-row { display:flex; gap:8px; margin-top:10px; }
+    .input-row textarea { flex:1; border:1px solid #e5e5e5; border-radius:10px; padding:10px; font-size:16px; resize:none; height:44px; }
+    .input-row button { min-width:46px; border:none; background:#0a84ff; color:#fff; border-radius:10px; font-size:18px; cursor:pointer; }
+    .input-row button.secondary { background:#ddd; color:#222; }
+    .hint { font-size:13px; color:#666; margin-top:6px; }
+    /* RS Form card */
+    .widget-content h3 { margin:0 0 6px }
+    .widget-content p { margin:0 0 12px }
+    .field { margin-bottom:10px }
+    .btn { display:inline-block; padding:8px 12px; border:0; border-radius:8px; cursor:pointer; }
+    .btn-success { background:#28a745; color:#fff; }
+    .two-col { display:flex; gap:10px; }
+    .two-col .field { flex:1 }
+    input, select { width:100%; padding:10px; border:1px solid #e5e5e5; border-radius:8px; font-size:15px; }
+    label { display:block; font-size:13px; color:#333; margin-bottom:6px; }
+    abbr[title="required"] { color:#c00; text-decoration:none; margin-right:4px; }
+    @media (max-width: 980px) {
+      .main { flex-direction:column; }
+      .left,.right { min-width:unset; }
+    }
+  </style>
+</head>
+<body>
+<div class="shell">
+  <div class="header">
+    <div class="title">Self Check-In</div>
+    <div>
+      <button id="help-btn" class="btn">👥 Need Help</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <!-- CHAT (AI fills the form on the right) -->
+    <div class="col left">
+      <div class="messages" id="messages"></div>
+      <div class="input-row">
+        <button id="mic-btn" class="secondary" title="Speak">🎤</button>
+        <textarea id="chat-input" placeholder="Tell Rover what’s going on…"></textarea>
+        <button id="send-btn" title="Send">➤</button>
+      </div>
+      <div class="hint">Rover will ask a few quick questions, fill the form on the right, and then submit to continue to the signature page.</div>
+    </div>
+
+    <!-- REPAIRSHOPR EMBED (AI writes here, then submits) -->
+    <div class="col right">
+      <div class='widget-content'>
+        <p class="customer-title" style="font-weight:700;font-size:18px;margin:0 0 8px;">Welcome!</p>
+        <p>You may begin a check-in to get started with a new request, or check the status of an existing request.</p>
+      </div>
+
+      <div class='widget-content' style='min-height: 410px; margin-top:12px;'>
+        <h3>Start a New Service Ticket</h3>
+        <p>We just need a couple things to get started:</p>
+
+        <!-- EXACT FORM as provided (ids/names must stay intact) -->
+        <form class="simple_form new_lead" id="new_lead" autocomplete="off" action="https://billingstechguys.repairshopr.com/check_ins/ticket_info" method="get" accept-charset="UTF-8" novalidate>
+          <div class="two-col">
+            <div class="field">
+              <label for="lead_first_name"><abbr title="required">*</abbr> First name</label>
+              <input required class="form-control" placeholder="First Name" type="text" name="lead[first_name]" id="lead_first_name" />
+            </div>
+            <div class="field">
+              <label for="lead_last_name"><abbr title="required">*</abbr> Last name</label>
+              <input required class="form-control" placeholder="Last Name" type="text" name="lead[last_name]" id="lead_last_name" />
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="lead_phone">Phone</label>
+            <input class="form-control" placeholder="Phone" type="tel" name="lead[phone]" id="lead_phone" />
+          </div>
+
+          <div class="field">
+            <label for="lead_mobile"><abbr title="required">*</abbr> Mobile</label>
+            <input required class="form-control" placeholder="Mobile" type="text" name="lead[mobile]" id="lead_mobile" />
+          </div>
+
+          <div class="field">
+            <label for="lead_email"><abbr title="required">*</abbr> Email</label>
+            <input required class="form-control" placeholder="Email" type="email" name="lead[email]" id="lead_email" />
+          </div>
+
+          <div class="field">
+            <label for="lead_address">Address</label>
+            <input class="form-control" placeholder="Address" type="text" name="lead[address]" id="lead_address" />
+          </div>
+
+          <div class="field">
+            <label for="lead_city">City</label>
+            <input class="form-control" placeholder="City" type="text" name="lead[city]" id="lead_city" />
+          </div>
+
+          <div class="two-col">
+            <div class="field">
+              <label for="lead_state">State</label>
+              <input class="form-control" placeholder="State" type="text" name="lead[state]" id="lead_state" />
+            </div>
+            <div class="field">
+              <label for="lead_zip">Zip</label>
+              <input class="form-control" placeholder="Zip/Postal" type="text" name="lead[zip]" id="lead_zip" />
+            </div>
+          </div>
+
+          <input type="submit" value="Get Started" class="btn btn-success" />
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Optional: speech-to-text -->
+<script>
+  // —— CONFIG ——
+
+  // Fields we want to collect conversationally (order matters).
+  // We ask "issue" first (for friendliness), then contact info that exists on the form.
+  const FIELD_ORDER = [
+    'issue',          // not on this form; just for conversation & triage hint
+    'first_name',
+    'last_name',
+    'mobile',         // required on RS form
+    'email',          // required on RS form
+    'phone',
+    'address',
+    'city',
+    'state',
+    'zip'
+  ];
+
+  // Map AI field keys -> DOM inputs on the RS form
+  const FIELD_TO_INPUT = {
+    first_name:  '#lead_first_name',
+    last_name:   '#lead_last_name',
+    phone:       '#lead_phone',
+    mobile:      '#lead_mobile',
+    email:       '#lead_email',
+    address:     '#lead_address',
+    city:        '#lead_city',
+    state:       '#lead_state',
+    zip:         '#lead_zip'
+  };
+
+  // Required fields for RS submit (from your embed)
+  const REQUIRED_FOR_RS = ['first_name','last_name','mobile','email'];
+
+  // —— DOM refs ——
+  const msgs     = document.getElementById('messages');
+  const input    = document.getElementById('chat-input');
+  const sendBtn  = document.getElementById('send-btn');
+  const micBtn   = document.getElementById('mic-btn');
+  const helpBtn  = document.getElementById('help-btn');
+  const form     = document.getElementById('new_lead');
+
+  // —— State ——
+  const collected = {};     // values coming from user via AI
+  let history = [];         // chat history for OpenAI
+
+  // —— Helpers ——
+  function appendMsg(text, who='bot') {
+    const d = document.createElement('div');
+    d.className = 'msg ' + (who === 'user' ? 'user' : 'bot');
+    d.textContent = text;
+    msgs.appendChild(d);
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+
+  function setInputValue(key, val) {
+    const sel = FIELD_TO_INPUT[key];
+    if (!sel) return;
+    const el = document.querySelector(sel);
+    if (el) el.value = val;
+  }
+
+  function hasAllRequired() {
+    return REQUIRED_FOR_RS.every(k => (collected[k] ?? '').toString().trim().length > 0);
+  }
+
+  function nextMissingField() {
+    for (const k of FIELD_ORDER) {
+      if ((collected[k] ?? '').toString().trim() === '') return k;
+    }
+    return null;
+  }
+
+  // Build a strict system prompt so the model returns machine-parsable JSON
+  function systemPrompt() {
+    return `
+You are "Rover", a friendly front-desk assistant for a computer repair shop kiosk.
+
+GOAL:
+• Ask the customer simple, natural questions to collect the following keys, IN THIS ORDER:
+  1) issue            → Ask: "What's going on with your device?"
+  2) first_name       → Ask: "What's your first name?"
+  3) last_name        → Ask: "What's your last name?"
+  4) mobile           → Ask: "What's the best mobile number to reach you?"
+  5) email            → Ask: "What's your email address?"
+  6) phone            → Ask: "Do you have an alternate phone?"
+  7) address          → Ask: "What's your street address?" (optional)
+  8) city             → Ask: "City?" (optional)
+  9) state            → Ask: "State?" (optional)
+  10) zip             → Ask: "Zip code?" (optional)
+
+• Only ask for the NEXT missing key.
+• Be concise, friendly, and one question at a time.
+
+OUTPUT FORMAT (must be pure JSON, no extra text):
+{
+  "say": "<what you say to the customer>",
+  "set": { "<any_key_you_captured>": "<value>" },
+  "done": <true_or_false>
+}
+
+RULES:
+• "done" should be true once first_name, last_name, mobile, and email are all collected.
+• When "done" is true, in "say" add:
+  "Based on what you described, Standard Diagnostics ($69.99) is for software issues and Advanced Diagnostics ($99.99) is for hardware issues. I’ll submit now and take you to the signature page."
+• If input is unclear, ask a short clarifying question instead of guessing.
+`.trim();
+  }
+
+  async function callOpenAI() {
+    const res = await fetch('/api/llm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        temperature: 0.2,
+        messages: history
+      })
+    });
+
+    const j = await res.json();
+    if (!res.ok || j.error) {
+      throw new Error(j.error || 'LLM proxy failed');
+    }
+    // IMPORTANT: return a STRING so your existing safeParseJSON(...) works unchanged
+    return j.content; // e.g. '{"say":"...","set":{...},"done":false}'
+  }
+
+  // Try to parse strict JSON; if the model returns extra prose, grab the first {...} block
+  function safeParseJSON(s) {
+    try { return JSON.parse(s); } catch(_) {}
+    const m = s.match(/\{[\s\S]*\}/);
+    if (m) {
+      try { return JSON.parse(m[0]); } catch(_) {}
+    }
+    throw new Error('Could not parse AI response.');
+  }
+
+  async function handleUserTurn(text) {
+    if (!text) return;
+    appendMsg(text, 'user');
+    history.push({ role:'user', content:text });
+
+    let raw, parsed;
+    try {
+      raw = await callOpenAI();
+      parsed = safeParseJSON(raw);
+    } catch (err) {
+      appendMsg(`⚠️ ${err.message}`, 'bot');
+      return;
+    }
+
+    // Merge fields, update visible form
+    if (parsed.set && typeof parsed.set === 'object') {
+      Object.entries(parsed.set).forEach(([k,v]) => {
+        collected[k] = String(v || '').trim();
+        setInputValue(k, collected[k]);
+      });
+    }
+
+    appendMsg(parsed.say || '…', 'bot');
+
+    // If the model says we're done and we truly have the required fields, submit the form
+    if (parsed.done && hasAllRequired()) {
+      // Submit RS form → RepairShopr will handle next page (intake/signature)
+      setTimeout(() => form.submit(), 600);
+    } else {
+      // Nudge the model with state so it asks only the next field
+      const want = nextMissingField();
+      if (want) {
+        history.push({
+          role:'system',
+          content: `State update: collected so far = ${JSON.stringify(collected)}. Next key needed: ${want}.`
+        });
+      }
+    }
+  }
+
+  // UI wiring
+  sendBtn.addEventListener('click', () => {
+    const t = input.value.trim();
+    input.value = '';
+    handleUserTurn(t);
+  });
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      sendBtn.click();
+    }
+  });
+
+  // Speech-to-text (optional)
+  let recog;
+  if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+    recog = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    recog.lang = 'en-US';
+    recog.interimResults = false;
+    recog.onresult = e => { input.value = e.results[0][0].transcript; sendBtn.click(); };
+  }
+  micBtn.addEventListener('click', () => { if (recog) recog.start(); });
+
+  // Help button (simple alert; replace with Teams webhook if desired)
+  helpBtn.addEventListener('click', () => {
+    alert('A technician has been notified and will be right with you.');
+  });
+
+  // Init chat
+  (function init() {
+    history = [{ role:'system', content: systemPrompt() }];
+    appendMsg('Hi! I’m Rover. What’s going on with your device?', 'bot');
+  })();
+</script>
+</body>
+</html>
