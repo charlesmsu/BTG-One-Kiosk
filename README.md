@@ -47,10 +47,10 @@ A storefront kiosk that lets walk-in customers create a **RepairShopr** ticket (
 
 ```mermaid
 flowchart LR
-  A[Browser (Kiosk)] -- /api/* --> B[Apache Reverse Proxy]
-  B -- 127.0.0.1:3000 --> C[Node/Express API]
-  C -- HTTPS --> D[RepairShopr API]
-  C -- HTTPS --> E[OpenAI API (optional)]
+  A[Browser (Kiosk)] --> B[Apache Reverse Proxy (/api)]
+  B --> C[Node/Express API :3000]
+  C --> D[RepairShopr API]
+  C --> E[OpenAI API (optional)]
 ```
 
 - **Apache** serves static assets and proxies `/api/*` → Node (`127.0.0.1:3000`).
