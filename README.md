@@ -39,7 +39,7 @@ A storefront kiosk that lets walk-in customers create a **RepairShopr** ticket (
 **Optional:** Chat assistant (“Bella”) that *suggests* values; never blocks the deterministic form.  
 **Non-goals:** Embedding third-party forms/iframes, exposing API keys client-side, making AI mandatory.
 
-> Kiosk users span ages & abilities — deterministic forms reduce friction and latency. The AI assistant is additive, not required.
+> Kiosk users span ages & abilities — deterministic forms reduce friction and latency.
 
 ---
 
